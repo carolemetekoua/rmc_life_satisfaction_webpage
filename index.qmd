@@ -1,7 +1,7 @@
 ---
 title: "Self-reported life satisfaction, 2011 to 2023"
 subtitle: "Replicating the Our World in Data Grapher"
-author: "YOUR NAME HERE" # Remember to add your name!
+author: "Carole Metekoua" # Remember to add your name!
 theme: united
 ---
 
@@ -26,7 +26,7 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 
 # Load packages
 if (!require(pacman)) install.packages("pacman")
-pacman::p_load(plotly, tidyverse, reactable, here, scales)
+pacman::p_load(plotly, tidyverse, reactable, here, scales, janitor)
 ```
 
 ```{r}
@@ -44,7 +44,7 @@ The main life evaluation question asked in the poll is the Cantril Life Ladder q
 
 > “Please imagine a ladder, with steps numbered from 0 at the bottom to 10 at the top. The top of the ladder represents the best possible life for you and the bottom of the ladder represents the worst possible life for you. On which step of the ladder would you say you personally feel you stand at this time?”
 
-
+:::{.panel-tabset}
 ## 🔢 Table
 
 **Average self-reported life satisfaction** – Cantril Ladder score (0=worst; 10=best)
@@ -63,7 +63,18 @@ The main life evaluation question asked in the poll is the Cantril Life Ladder q
 # 5. Also with `mutate`, you should round your numbers to appropriate decimal places.
 # 6. Then use scales::percent to format the Relative change as a percentage.
 # 7. Use the `reactable` function to create and output the table.
-"WRITE_YOUR_CODE_HERE"
+table1 <- cantril %>% 
+  clean_names() %>% 
+  select(!code) %>% 
+  filter(year %in% c(2011, 2023)) %>% 
+  pivot_wider(id_cols = country,
+              names_from = year,
+              values_from = cantril_ladder_score) %>% 
+  mutate(`Absolute change` = round(`2023` - `2011`, 2),
+         `Relative change` = scales::percent((`2023` - `2011`)/ `2011`, accuracy = 0.1),
+         `2011` = round(`2011`, 2),
+         `2023` = round(`2023`, 2))
+reactable(table1)
 ```
 
 
@@ -109,7 +120,18 @@ cantril %>%
 # 6. Use theme_minimal to set the theme.
 # 7. Finally, use ggplotly to convert the ggplot chart to a plotly chart
 
-"WRITE_YOUR_CODE_HERE"
+plot1 <- cantril %>%
+  clean_names() %>% 
+  filter(country %in% c('South Africa', 'Nigeria', 'Cameroon', 'Canada')) %>% 
+  ggplot(aes(x=year, y=cantril_ladder_score, color=country)) +
+    geom_line() +
+  scale_y_continuous(limits = c(0,10)) +
+  labs(x= 'Year', 
+       y= 'Cantril ladder score',
+       color = 'Country') +
+  theme_minimal()
+
+ggplotly(plot1)
 # (When you're done with this section, don't forget to add tabsets, as mentioned in the instructions.)
 ```
 
@@ -166,14 +188,32 @@ function filter_default() {
 window.onload = filter_default;
 </script>
 
-
+## 📈 Happiness Ranking
 ```{r}
 # OPTIONAL CHALLENGE SECTION:
 
 # Add a final tab with a single figure that shows the top 10 and bottom 10 countries by happiness score in 2023. Remember to add a ## header and include it in the tabsets
-# "WRITE_YOUR_CODE_HERE"
-```
+plot2 <- cantril %>% 
+  #clean_names() %>% 
+  filter(Year==2023) %>% 
+  arrange(desc(`Cantril ladder score`)) %>% 
+  mutate(rank = row_number()) %>% 
+  filter(rank <=10 | rank>(n() - 10)) %>% 
+  mutate(rank= ifelse(rank<=10 , 'Top 10', 'Bottom 10'),
+         rank = factor(rank, levels=c('Top 10', 'Bottom 10'), ordered = TRUE),
+         Country = factor(Country, levels = rev(unique(Country)))) %>%
+  ggplot(aes(x=Country, y=`Cantril ladder score`, fill = rank)) +
+  geom_col() +
+  coord_flip() +
+  scale_y_continuous(limits = c(0,10),
+                     breaks = seq(0,10,2)) +
+  labs(fill = 'Rank') +
+  theme_minimal() +
+  theme(axis.text.x.bottom = element_text(angle = 90, vjust=0.5))
 
+ggplotly(plot2) 
+```
+:::
 
 # {.unlisted}
 
